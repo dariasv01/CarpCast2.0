@@ -7,6 +7,10 @@ android {
     namespace = "com.example.composeapp"
     compileSdk = 34
 
+    val apiBaseUrl = providers.environmentVariable("NEXT_PUBLIC_APP_URL")
+        .orElse(providers.gradleProperty("API_BASE_URL"))
+        .orElse("https://carpcast.app")
+
     defaultConfig {
         applicationId = "com.example.composeapp"
         minSdk = 24
@@ -15,7 +19,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:3000\"")
+        buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl.get()}\"")
     }
 
     buildFeatures {
