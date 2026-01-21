@@ -35,6 +35,13 @@ data class ForecastEntry(
     val pressureHpa: Int
 )
 
+data class ForecastResult(
+    val location: Location,
+    val entries: List<ForecastEntry>,
+    val mode: String,
+    val species: String
+)
+
 data class DayForecast(
     val dayLabel: String,
     val entries: List<ForecastEntry>
@@ -48,4 +55,11 @@ data class FeatureCard(
 data class QuickAction(
     val title: String,
     val subtitle: String
+)
+
+data class FavoriteSpot(
+    val id: String,
+    val name: String,
+    val latitude: Double,
+    val longitude: Double
 )

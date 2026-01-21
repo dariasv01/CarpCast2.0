@@ -19,18 +19,32 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.composeapp.data.FakeLocationRepository
+import com.example.composeapp.data.FavoriteSpot
+import com.example.composeapp.data.ForecastRepository
 import com.example.composeapp.ui.components.SectionCard
 
 @Composable
 fun FavoritesScreen(onBack: () -> Unit) {
-    val favorites = remember { FakeLocationRepository.search("a") }
+    var favorites by remember { mutableStateOf<List<FavoriteSpot>>(emptyList()) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        try {
+            favorites = ForecastRepository.fetchFavorites()
+        } catch (error: Exception) {
+            errorMessage = "No se pudieron cargar los favoritos"
+        }
+    }
 
     LazyColumn(
         modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
@@ -55,6 +69,16 @@ fun FavoritesScreen(onBack: () -> Unit) {
                     text = "Tus lugares guardados",
                     style = MaterialTheme.typography.titleSmall
                 )
+            }
+        }
+        if (errorMessage != null) {
+            item {
+                Text(text = errorMessage.orEmpty(), color = MaterialTheme.colorScheme.error)
+            }
+        }
+        if (favorites.isEmpty() && errorMessage == null) {
+            item {
+                Text(text = "Aún no hay favoritos guardados.", style = MaterialTheme.typography.bodySmall)
             }
         }
         items(favorites) { location ->

@@ -2,6 +2,8 @@
 
 package com.example.composeapp.ui.screens
 
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +39,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,15 +54,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.composeapp.data.FeatureCard
-import com.example.composeapp.data.FakeForecastRepository
-import com.example.composeapp.data.FakeLocationRepository
 import com.example.composeapp.data.FishSpecies
+import com.example.composeapp.data.ForecastEntry
+import com.example.composeapp.data.ForecastRepository
 import com.example.composeapp.data.ForecastQuery
 import com.example.composeapp.data.Location
 import com.example.composeapp.data.QuickAction
 import com.example.composeapp.ui.components.SectionCard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.viewinterop.AndroidView
 
 @Composable
 fun HomeScreen(
@@ -72,9 +76,31 @@ fun HomeScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showMap by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
+    var searchResults by remember { mutableStateOf<List<Location>>(emptyList()) }
+    var searchError by remember { mutableStateOf<String?>(null) }
 
-    val searchResults = remember(searchQuery) { FakeLocationRepository.search(searchQuery) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.isBlank()) {
+            searchResults = emptyList()
+            searchError = null
+            return@LaunchedEffect
+        }
+        if (searchQuery.length < 2) {
+            searchResults = emptyList()
+            searchError = "Introduce al menos 2 caracteres"
+            return@LaunchedEffect
+        }
+        delay(300)
+        try {
+            searchResults = ForecastRepository.searchPlaces(searchQuery, limit = 5)
+            searchError = null
+        } catch (error: Exception) {
+            searchResults = emptyList()
+            searchError = "No se pudo buscar ubicaciones"
+        }
+    }
 
     val featureCards = remember {
         listOf(
@@ -140,6 +166,7 @@ fun HomeScreen(
                     selectedLocation = selectedLocation,
                     searchQuery = searchQuery,
                     searchResults = searchResults,
+                    searchError = searchError,
                     showMap = showMap,
                     isLoading = isLoading,
                     onSearchQueryChange = { searchQuery = it },
@@ -147,8 +174,8 @@ fun HomeScreen(
                         scope.launch {
                             isLoading = true
                             delay(600)
-                            selectedLocation = FakeLocationRepository.currentLocation()
-                            searchQuery = ""
+                            selectedLocation = Location("Madrid, España", 40.4168, -3.7038)
+                            searchQuery = selectedLocation?.name.orEmpty()
                             isLoading = false
                         }
                     },
@@ -159,7 +186,8 @@ fun HomeScreen(
                     },
                     onClearSelection = { selectedLocation = null },
                     onGetForecast = {
-                        val location = selectedLocation ?: searchResults.firstOrNull() ?: FakeLocationRepository.currentLocation()
+                        val location = selectedLocation ?: searchResults.firstOrNull()
+                        if (location == null) return@LocationSection
                         onNavigateToForecast(
                             ForecastQuery(
                                 species = selectedSpecies.name,
@@ -318,6 +346,7 @@ private fun LocationSection(
     selectedLocation: Location?,
     searchQuery: String,
     searchResults: List<Location>,
+    searchError: String?,
     showMap: Boolean,
     isLoading: Boolean,
     onSearchQueryChange: (String) -> Unit,
@@ -363,6 +392,14 @@ private fun LocationSection(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            if (searchError != null) {
+                Text(
+                    text = searchError,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
             if (searchResults.isNotEmpty() && searchQuery.isNotBlank()) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     searchResults.take(4).forEach { result ->
@@ -384,30 +421,13 @@ private fun LocationSection(
             }
 
             if (showMap) {
-                Box(
+                MapPreview(
+                    location = selectedLocation ?: Location("Madrid, España", 40.4168, -3.7038),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
+                        .height(200.dp)
                         .clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Map,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "Mapa interactivo", style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            text = "Conecta Google Maps en la siguiente fase",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                )
             }
 
             Button(
@@ -551,14 +571,32 @@ private fun QuickAccessSection(
 
 @Composable
 private fun ForecastPreview() {
-    val dayForecasts = remember { FakeForecastRepository.dayForecasts() }
+    var previewEntries by remember { mutableStateOf<List<ForecastEntry>>(emptyList()) }
+    var previewError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val result = ForecastRepository.fetchForecast(ForecastQuery(), days = 1)
+            previewEntries = result.entries.take(3)
+        } catch (error: Exception) {
+            previewEntries = emptyList()
+            previewError = "No se pudo cargar la vista previa"
+        }
+    }
     SectionCard(
         modifier = Modifier.fillMaxWidth(),
         borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(text = "Vista previa de pronóstico", style = MaterialTheme.typography.titleSmall)
-            dayForecasts.firstOrNull()?.entries?.take(3)?.forEach { entry ->
+            if (previewError != null) {
+                Text(
+                    text = previewError ?: "",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            previewEntries.forEach { entry ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -569,4 +607,61 @@ private fun ForecastPreview() {
             }
         }
     }
+}
+
+@Composable
+private fun MapPreview(location: Location, modifier: Modifier = Modifier) {
+    val html = remember(location) { mapHtml(location.latitude, location.longitude) }
+    AndroidView(
+        modifier = modifier,
+        factory = { context ->
+            WebView(context).apply {
+                webViewClient = WebViewClient()
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                loadDataWithBaseURL(
+                    "https://localhost/",
+                    html,
+                    "text/html",
+                    "utf-8",
+                    null
+                )
+            }
+        },
+        update = { view ->
+            view.evaluateJavascript("updateLocation(${location.latitude}, ${location.longitude});", null)
+        }
+    )
+}
+
+private fun mapHtml(latitude: Double, longitude: Double): String {
+    return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />
+          <link rel=\"stylesheet\" href=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css\" />
+          <style>
+            html, body { margin: 0; height: 100%; }
+            #map { width: 100%; height: 100%; }
+          </style>
+        </head>
+        <body>
+          <div id=\"map\"></div>
+          <script src=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js\"></script>
+          <script>
+            var map = L.map('map').setView([$latitude, $longitude], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              maxZoom: 19,
+              attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            var marker = L.marker([$latitude, $longitude]).addTo(map);
+            function updateLocation(lat, lng) {
+              map.setView([lat, lng], 10);
+              marker.setLatLng([lat, lng]);
+            }
+          </script>
+        </body>
+        </html>
+    """.trimIndent()
 }
