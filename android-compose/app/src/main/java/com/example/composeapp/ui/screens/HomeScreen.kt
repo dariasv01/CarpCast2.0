@@ -14,12 +14,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MapPin
+import androidx.compose.material.icons.filled.Opacity
+import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
@@ -42,6 +45,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.composeapp.data.FeatureCard
@@ -79,6 +85,15 @@ fun HomeScreen(
         )
     }
 
+    val featureIcons = remember {
+        listOf(
+            Icons.Default.Cloud,
+            Icons.Default.Schedule,
+            Icons.Default.Opacity,
+            Icons.Default.Map
+        )
+    }
+
     val quickActions = remember {
         listOf(
             QuickAction("Lugares Favoritos", "Guarda tus mejores pesqueros"),
@@ -86,74 +101,94 @@ fun HomeScreen(
         )
     }
 
-    LazyColumn(
+    val quickActionIcons = remember {
+        listOf(Icons.Default.Star, Icons.Default.Settings)
+    }
+
+    val backgroundBrush = remember {
+        Brush.verticalGradient(
+            listOf(
+                Color(0xFFEAF4FF),
+                Color(0xFFDDF6FF),
+                Color(0xFFF5FBFF)
+            )
+        )
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+            .background(backgroundBrush)
     ) {
-        item {
-            HeaderSection()
-        }
-        item {
-            HeroSection()
-        }
-        item {
-            SpeciesSection(selectedSpecies = selectedSpecies, onSelectSpecies = { selectedSpecies = it })
-        }
-        item {
-            LocationSection(
-                selectedLocation = selectedLocation,
-                searchQuery = searchQuery,
-                searchResults = searchResults,
-                showMap = showMap,
-                isLoading = isLoading,
-                onSearchQueryChange = { searchQuery = it },
-                onUseCurrentLocation = {
-                    scope.launch {
-                        isLoading = true
-                        delay(600)
-                        selectedLocation = FakeLocationRepository.currentLocation()
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            item {
+                HeaderSection()
+            }
+            item {
+                HeroSection()
+            }
+            item {
+                SpeciesSection(selectedSpecies = selectedSpecies, onSelectSpecies = { selectedSpecies = it })
+            }
+            item {
+                LocationSection(
+                    selectedLocation = selectedLocation,
+                    searchQuery = searchQuery,
+                    searchResults = searchResults,
+                    showMap = showMap,
+                    isLoading = isLoading,
+                    onSearchQueryChange = { searchQuery = it },
+                    onUseCurrentLocation = {
+                        scope.launch {
+                            isLoading = true
+                            delay(600)
+                            selectedLocation = FakeLocationRepository.currentLocation()
+                            searchQuery = ""
+                            isLoading = false
+                        }
+                    },
+                    onToggleMap = { showMap = !showMap },
+                    onSelectLocation = {
+                        selectedLocation = it
                         searchQuery = ""
-                        isLoading = false
-                    }
-                },
-                onToggleMap = { showMap = !showMap },
-                onSelectLocation = {
-                    selectedLocation = it
-                    searchQuery = ""
-                },
-                onClearSelection = { selectedLocation = null },
-                onGetForecast = {
-                    val location = selectedLocation ?: searchResults.firstOrNull() ?: FakeLocationRepository.currentLocation()
-                    onNavigateToForecast(
-                        ForecastQuery(
-                            species = selectedSpecies.name,
-                            mode = selectedSpecies.mode.name,
-                            locationName = location.name,
-                            latitude = location.latitude.toString(),
-                            longitude = location.longitude.toString()
+                    },
+                    onClearSelection = { selectedLocation = null },
+                    onGetForecast = {
+                        val location = selectedLocation ?: searchResults.firstOrNull() ?: FakeLocationRepository.currentLocation()
+                        onNavigateToForecast(
+                            ForecastQuery(
+                                species = selectedSpecies.name,
+                                mode = selectedSpecies.mode.name,
+                                locationName = location.name,
+                                latitude = location.latitude.toString(),
+                                longitude = location.longitude.toString()
+                            )
                         )
-                    )
-                }
-            )
-        }
-        item {
-            FeatureGrid(featureCards)
-        }
-        item {
-            InfoCard()
-        }
-        item {
-            QuickAccessSection(
-                actions = quickActions,
-                onFavoritesClick = onNavigateToFavorites,
-                onSettingsClick = onNavigateToSettings
-            )
-        }
-        item {
-            ForecastPreview()
+                    }
+                )
+            }
+            item {
+                FeatureGrid(featureCards, featureIcons)
+            }
+            item {
+                InfoCard()
+            }
+            item {
+                QuickAccessSection(
+                    actions = quickActions,
+                    icons = quickActionIcons,
+                    onFavoritesClick = onNavigateToFavorites,
+                    onSettingsClick = onNavigateToSettings
+                )
+            }
+            item {
+                ForecastPreview()
+            }
         }
     }
 }
@@ -166,13 +201,17 @@ private fun HeaderSection() {
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primary),
+                    .background(
+                        Brush.linearGradient(
+                            listOf(Color(0xFF2196F3), Color(0xFF00BCD4))
+                        )
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Waves,
+                    imageVector = Icons.Default.Pets,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary
+                    tint = Color.White
                 )
             }
             Text(
@@ -191,19 +230,26 @@ private fun HeaderSection() {
 
 @Composable
 private fun HeroSection() {
-    SectionCard {
+    SectionCard(
+        modifier = Modifier.fillMaxWidth(),
+        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+    ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(
                 modifier = Modifier
                     .size(72.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
+                    .background(
+                        Brush.linearGradient(
+                            listOf(Color(0xFF2196F3), Color(0xFF00BCD4))
+                        )
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Waves,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = Color.White,
                     modifier = Modifier.size(36.dp)
                 )
             }
@@ -226,7 +272,10 @@ private fun SpeciesSection(
     selectedSpecies: FishSpecies,
     onSelectSpecies: (FishSpecies) -> Unit
 ) {
-    SectionCard {
+    SectionCard(
+        modifier = Modifier.fillMaxWidth(),
+        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(text = "Especie Objetivo", style = MaterialTheme.typography.titleSmall)
             val speciesList = FishSpecies.values().toList()
@@ -278,7 +327,10 @@ private fun LocationSection(
     onClearSelection: () -> Unit,
     onGetForecast: () -> Unit
 ) {
-    SectionCard {
+    SectionCard(
+        modifier = Modifier.fillMaxWidth(),
+        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(text = "Seleccionar Ubicación", style = MaterialTheme.typography.titleSmall)
 
@@ -335,12 +387,26 @@ private fun LocationSection(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(160.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(20.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "Mapa interactivo (placeholder)")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Map,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(text = "Mapa interactivo", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = "Conecta Google Maps en la siguiente fase",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
@@ -384,16 +450,30 @@ private fun SelectedLocationCard(location: Location, onClearSelection: () -> Uni
 }
 
 @Composable
-private fun FeatureGrid(cards: List<FeatureCard>) {
+private fun FeatureGrid(cards: List<FeatureCard>, icons: List<ImageVector>) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        cards.chunked(2).forEach { row ->
+        cards.chunked(2).forEachIndexed { rowIndex, row ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                row.forEach { card ->
+                row.forEachIndexed { columnIndex, card ->
+                    val iconIndex = rowIndex * 2 + columnIndex
                     SectionCard(modifier = Modifier.weight(1f)) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = icons.getOrElse(iconIndex) { Icons.Default.Waves },
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                             Text(text = card.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                             Text(text = card.subtitle, style = MaterialTheme.typography.labelSmall)
                         }
@@ -423,10 +503,14 @@ private fun InfoCard() {
 @Composable
 private fun QuickAccessSection(
     actions: List<QuickAction>,
+    icons: List<ImageVector>,
     onFavoritesClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
-    SectionCard {
+    SectionCard(
+        modifier = Modifier.fillMaxWidth(),
+        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(text = "Acceso Rápido", style = MaterialTheme.typography.titleSmall)
             actions.forEachIndexed { index, action ->
@@ -450,7 +534,7 @@ private fun QuickAccessSection(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = if (index == 0) Icons.Default.Star else Icons.Default.Settings,
+                                imageVector = icons.getOrElse(index) { Icons.Default.Star },
                                 contentDescription = null
                             )
                         }
@@ -468,7 +552,10 @@ private fun QuickAccessSection(
 @Composable
 private fun ForecastPreview() {
     val dayForecasts = remember { FakeForecastRepository.dayForecasts() }
-    SectionCard {
+    SectionCard(
+        modifier = Modifier.fillMaxWidth(),
+        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+    ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(text = "Vista previa de pronóstico", style = MaterialTheme.typography.titleSmall)
             dayForecasts.firstOrNull()?.entries?.take(3)?.forEach { entry ->
