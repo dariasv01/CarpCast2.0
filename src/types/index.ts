@@ -7,25 +7,34 @@ export interface WeatherData {
   windSpeed: number;
   windDirection: number;
   cloudCover: number;
+  cloudCoverLow?: number;
+  cloudCoverMid?: number;
+  cloudCoverHigh?: number;
   precipitation: number;
+  precipitationProbability?: number;
   humidity: number;
   pressure: number;
   visibility: number;
   uvIndex: number;
   gustSpeed: number;
+
+  // Opcionales (para modelos más detallados)
+  dewPoint?: number;
+  shortwaveRadiation?: number; // W/m2
+  isDay?: boolean;
 }
 
 // Datos marinos
 export interface MarineData {
   time: string;
   waveHeight: number;
-  wavePeriod: number;
-  waveDirection: number;
-  swellHeight: number;
-  swellPeriod: number;
-  swellDirection: number;
-  currentSpeed: number;
-  currentDirection: number;
+  wavePeriod?: number;
+  waveDirection?: number;
+  swellHeight?: number;
+  swellPeriod?: number;
+  swellDirection?: number;
+  currentSpeed?: number;
+  currentDirection?: number;
 }
 
 // Datos astronómicos
@@ -80,7 +89,11 @@ export interface OpenMeteoResponse {
     wind_direction_10m: number[];
     wind_gusts_10m: number[];
     uv_index: number[];
+    shortwave_radiation?: number[];
+    is_day?: number[];
     surface_pressure: number[];
+    pressure_msl?: number[];
+    dewpoint_2m?: number[];
   };
   marine?: {
     time: string[];
@@ -189,6 +202,7 @@ export interface ScoreBreakdown {
     seasonFactor?: number;
     spawnPenalty?: number;
     nightFactor?: number;
+    moonFactor?: number;
   };
 }
 

@@ -1,7 +1,7 @@
 // Página de pronóstico detallado de pesca
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
@@ -23,6 +23,20 @@ import WeatherDisplay from '@/components/WeatherDisplay';
 import type { ForecastData } from '@/types';
 
 export default function ForecastPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[40vh] flex items-center justify-center text-gray-600">
+          Cargando pronóstico…
+        </div>
+      }
+    >
+      <ForecastPageInner />
+    </Suspense>
+  );
+}
+
+function ForecastPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   

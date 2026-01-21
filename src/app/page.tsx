@@ -216,7 +216,7 @@ export default function HomePage() {
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyPress={handleKeyPress}
-              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-sm"
+              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none text-sm dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-400 dark:border-slate-700"
             />
             {isSearching && (
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">

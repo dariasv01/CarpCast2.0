@@ -70,18 +70,18 @@ export default function SettingsPage() {
   }, [theme, notifications]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-slate-900 dark:to-slate-800">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-blue-200 sticky top-0 z-50">
+      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-blue-200 dark:border-slate-700 sticky top-0 z-50">
         <div className="max-w-md mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.push('/')}
-              className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+              className="p-2 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-blue-600" />
             </button>
-            <h1 className="text-lg font-semibold text-gray-800">Configuración</h1>
+            <h1 className="text-lg font-semibold text-gray-800 dark:text-white">Configuración</h1>
             <div className="w-9 h-9" /> {/* Spacer */}
           </div>
         </div>
@@ -89,15 +89,15 @@ export default function SettingsPage() {
 
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Appearance Section */}
-        <div className="bg-white rounded-2xl p-4 shadow-lg border border-blue-100">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center space-x-2">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-lg border border-blue-100 dark:border-slate-700">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center space-x-2">
             <Smartphone className="w-5 h-5" />
             <span>Apariencia</span>
           </h2>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2">
                 Tema
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -105,8 +105,8 @@ export default function SettingsPage() {
                   onClick={() => setTheme('light')}
                   className={`p-3 rounded-xl border-2 transition-colors ${
                     theme === 'light' 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-blue-300'
+                      ? 'border-blue-500 bg-blue-50 text-blue-800 dark:bg-slate-800 dark:text-white' 
+                      : 'border-gray-200 hover:border-blue-300 bg-white text-gray-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
                   }`}
                 >
                   <Sun className="w-5 h-5 mx-auto mb-1" />
@@ -116,8 +116,8 @@ export default function SettingsPage() {
                   onClick={() => setTheme('dark')}
                   className={`p-3 rounded-xl border-2 transition-colors ${
                     theme === 'dark' 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-blue-300'
+                      ? 'border-blue-500 bg-blue-50 text-blue-800 dark:bg-slate-800 dark:text-white' 
+                      : 'border-gray-200 hover:border-blue-300 bg-white text-gray-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
                   }`}
                 >
                   <Moon className="w-5 h-5 mx-auto mb-1" />
@@ -127,8 +127,8 @@ export default function SettingsPage() {
                   onClick={() => setTheme('auto')}
                   className={`p-3 rounded-xl border-2 transition-colors ${
                     theme === 'auto' 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-blue-300'
+                      ? 'border-blue-500 bg-blue-50 text-blue-800 dark:bg-slate-800 dark:text-white' 
+                      : 'border-gray-200 hover:border-blue-300 bg-white text-gray-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
                   }`}
                 >
                   <Smartphone className="w-5 h-5 mx-auto mb-1" />

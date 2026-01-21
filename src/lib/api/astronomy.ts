@@ -62,7 +62,7 @@ export class AstroClient {
     // Si no conseguimos datos básicos del sol, usar fallback
     if (!sunData?.sundata) {
       console.warn('USNO sun data unavailable, using fallback calculation');
-      return this.calculateSunTimesWithFallback(lat, lng, date);
+      return this.calculateSunTimesWithFallback(latitude, longitude, date);
     }
 
     return {
@@ -155,7 +155,7 @@ export class AstroClient {
   }
 
   // Helpers
-  private static calculateSunTimesWithFallback(lat: number, lng: number, date: Date): AstronomyData {
+  private static calculateSunTimesWithFallback(lat: number, lng: number, date: Date): AstroData {
     // Simple solar calculation for fallback
     const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000);
     const solarDeclination = 23.45 * Math.sin((360 * (284 + dayOfYear) / 365) * Math.PI / 180);
@@ -169,12 +169,16 @@ export class AstroClient {
       return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
     };
 
+    const dateKey = date.toISOString().slice(0, 10); // YYYY-MM-DD
+    const sunriseIso = new Date(`${dateKey}T${formatTime(sunriseHour)}:00`).toISOString();
+    const sunsetIso = new Date(`${dateKey}T${formatTime(sunsetHour)}:00`).toISOString();
+
     return {
-      sunrise: formatTime(sunriseHour),
-      sunset: formatTime(sunsetHour),
-      moonrise: null,
-      moonset: null,
-      moonPhase: 'Unknown',
+      sunrise: sunriseIso,
+      sunset: sunsetIso,
+      moonrise: undefined,
+      moonset: undefined,
+      moonPhase: 0.5,
       moonIllumination: 50,
     };
   }

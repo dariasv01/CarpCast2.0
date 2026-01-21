@@ -77,6 +77,8 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 minutos
 
 export async function GET(request: NextRequest) {
   try {
+    // Momento fijo de referencia para todo el pronóstico (evita que cambie dentro del map por ms)
+    const anchorNow = new Date();
     const { searchParams } = new URL(request.url);
     
     // Validar parámetros requeridos
@@ -166,9 +168,25 @@ export async function GET(request: NextRequest) {
       hydroData = undefined;
     }
 
+    const estimatedWaterTemps = ActivityScoring.estimateWaterTempSeries(
+      weatherData,
+      hydroData?.waterTemp
+    );
+
     // Calcular scores de actividad para cada hora
     const forecasts: ForecastData[] = weatherData.map((weather, index) => {
       const derived = computeDerivedFeatures(weatherData, index);
+
+      const pointTime = new Date(weather.time);
+      const horizonHoursRaw = (pointTime.getTime() - anchorNow.getTime()) / (60 * 60 * 1000);
+      const horizonAbsHours = Math.abs(horizonHoursRaw);
+      // Regla de oro (NOW robusto / futuro biológico):
+      // - Dentro de ±2h: usar agua real si existe; si no, no pasar waterTemp para que el motor use temp del aire.
+      // - Más allá de 2h: usar siempre serie estimada de agua (inercia térmica).
+      const waterTempForScoring = horizonAbsHours <= 2
+        ? (Number.isFinite(hydroData?.waterTemp) ? hydroData!.waterTemp : undefined)
+        : estimatedWaterTemps[index];
+
       const activityScore = ActivityScoring.calculate({
         weather,
         astro: astroData!,
@@ -178,9 +196,10 @@ export async function GET(request: NextRequest) {
         species,
         context: {
           lat,
-          now: new Date(weather.time),
+          now: pointTime,
+          anchorNow,
           derived,
-          waterTemp: hydroData?.waterTemp,
+          waterTemp: waterTempForScoring,
         },
       });
 
@@ -198,16 +217,11 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Simplificar mejores ventanas - usar los scores más altos
-    const bestWindows = forecasts
-      .map(f => ({
-        start: f.time,
-        end: f.time, // Simplificado
-        score: f.activity.overall,
-        reason: f.activity.recommendation
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 2);
+    const bestWindows = ActivityScoring.findBestWindows(
+      forecasts.map(f => ({ time: f.time, score: f.activity.overall })),
+      3,
+      3
+    );
 
     const response = {
       location: {

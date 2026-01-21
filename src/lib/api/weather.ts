@@ -34,12 +34,21 @@ export class OpenMeteoClient {
     const hourlyParams = [
       'temperature_2m',
       'relative_humidity_2m', 
+      'dewpoint_2m',
       'precipitation',
+      'precipitation_probability',
       'cloud_cover',
+      'cloud_cover_low',
+      'cloud_cover_mid',
+      'cloud_cover_high',
       'wind_speed_10m',
       'wind_direction_10m',
       'wind_gusts_10m',
-      'pressure_msl'
+      'surface_pressure',
+      'shortwave_radiation',
+      'is_day',
+      'visibility',
+      'uv_index'
     ].join(',');
 
     const params = {
@@ -113,12 +122,19 @@ export class OpenMeteoClient {
       windSpeed: hourly.wind_speed_10m?.[index] || 0,
       windDirection: hourly.wind_direction_10m?.[index] || 0,
       cloudCover: hourly.cloud_cover?.[index] || 0,
+      cloudCoverLow: hourly.cloud_cover_low?.[index],
+      cloudCoverMid: hourly.cloud_cover_mid?.[index],
+      cloudCoverHigh: hourly.cloud_cover_high?.[index],
       precipitation: hourly.precipitation?.[index] || 0,
+      precipitationProbability: hourly.precipitation_probability?.[index],
       humidity: hourly.relative_humidity_2m?.[index] || 0,
-      pressure: hourly.pressure_msl?.[index] || 1013.25,
+      pressure: hourly.surface_pressure?.[index] || hourly.pressure_msl?.[index] || 1013.25,
       visibility: hourly.visibility?.[index] || 10000, // Default 10km
       uvIndex: hourly.uv_index?.[index] || 0,
       gustSpeed: hourly.wind_gusts_10m?.[index] || 0,
+      dewPoint: hourly.dewpoint_2m?.[index],
+      shortwaveRadiation: hourly.shortwave_radiation?.[index],
+      isDay: typeof hourly.is_day?.[index] === 'number' ? hourly.is_day[index] === 1 : undefined,
     }));
   }
 
@@ -128,10 +144,15 @@ export class OpenMeteoClient {
     const { hourly } = data;
     
     return hourly.time.map((time: string, index: number) => ({
-      waveHeight: hourly.wave_height?.[index],
+      time,
+      waveHeight: hourly.wave_height?.[index] ?? 0,
       waveDirection: hourly.wave_direction?.[index],
       wavePeriod: hourly.wave_period?.[index],
       swellHeight: hourly.swell_wave_height?.[index],
+      swellPeriod: hourly.swell_wave_period?.[index],
+      swellDirection: hourly.swell_wave_direction?.[index],
+      currentSpeed: hourly.ocean_current_velocity?.[index],
+      currentDirection: hourly.ocean_current_direction?.[index],
     }));
   }
 }
