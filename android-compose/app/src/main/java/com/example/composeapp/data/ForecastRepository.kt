@@ -36,20 +36,37 @@ object ForecastRepository {
             longitude = locationJson?.optDouble("longitude") ?: query.longitude.toDoubleOrNull() ?: 0.0
         )
         val forecasts = data.optJSONArray("forecasts") ?: JSONArray()
+        val availabilityJson = data.optJSONObject("dataAvailability")
+        val availability = DataAvailability(
+            weather = availabilityJson?.optBoolean("weather") ?: true,
+            astro = availabilityJson?.optBoolean("astro") ?: true,
+            hydro = availabilityJson?.optBoolean("hydro") ?: false,
+            marine = availabilityJson?.optBoolean("marine") ?: false
+        )
         val entries = (0 until forecasts.length()).mapNotNull { index ->
             val item = forecasts.optJSONObject(index) ?: return@mapNotNull null
             val weather = item.optJSONObject("weather")
             val activity = item.optJSONObject("activity")
+            val reasons = activity?.optJSONArray("reasons")?.toStringList() ?: emptyList()
+            val windows = activity?.optJSONArray("bestWindows")?.toWindowList() ?: emptyList()
             ForecastEntry(
                 timeLabel = item.optString("time"),
                 activityScore = activity?.optInt("overall") ?: 0,
                 temperatureC = weather?.optDouble("temperature")?.toInt() ?: 0,
                 windKph = weather?.optDouble("windSpeed")?.toInt() ?: 0,
-                pressureHpa = weather?.optDouble("pressure")?.toInt() ?: 0
+                pressureHpa = weather?.optDouble("pressure")?.toInt() ?: 0,
+                reasons = reasons,
+                bestWindows = windows
             )
         }
 
-        return ForecastResult(location = location, entries = entries, mode = query.mode, species = query.species)
+        return ForecastResult(
+            location = location,
+            entries = entries,
+            mode = query.mode,
+            species = query.species,
+            dataAvailability = availability
+        )
     }
 
     suspend fun fetchFavorites(): List<FavoriteSpot> {
@@ -64,6 +81,25 @@ object ForecastRepository {
                     name = spot.optString("name"),
                     latitude = locationObj?.optDouble("latitude") ?: 0.0,
                     longitude = locationObj?.optDouble("longitude") ?: 0.0
+                )
+            }
+        }
+    }
+
+    private fun JSONArray.toStringList(): List<String> {
+        return (0 until length()).mapNotNull { index ->
+            optString(index).takeIf { it.isNotBlank() }
+        }
+    }
+
+    private fun JSONArray.toWindowList(): List<ActivityWindow> {
+        return (0 until length()).mapNotNull { index ->
+            optJSONObject(index)?.let { window ->
+                ActivityWindow(
+                    start = window.optString("start"),
+                    end = window.optString("end"),
+                    score = window.optInt("score"),
+                    reason = window.optString("reason")
                 )
             }
         }

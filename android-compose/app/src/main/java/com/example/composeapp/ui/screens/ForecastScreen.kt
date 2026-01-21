@@ -33,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.composeapp.data.ActivityWindow
+import com.example.composeapp.data.DataAvailability
 import com.example.composeapp.data.DayForecast
 import com.example.composeapp.data.ForecastEntry
 import com.example.composeapp.data.ForecastQuery
@@ -89,7 +91,11 @@ fun ForecastScreen(
             TopBar(title = "Pronóstico", onBack = onBack)
         }
         item {
-            LocationSummary(query = query, resolvedName = forecastResult?.location?.name)
+            LocationSummary(
+                query = query,
+                resolvedName = forecastResult?.location?.name,
+                dataAvailability = forecastResult?.dataAvailability
+            )
         }
         when {
             isLoading -> {
@@ -113,6 +119,9 @@ fun ForecastScreen(
                 if (selectedDay != null) {
                     item {
                         ActivityScoreCard(entry = selectedDay.entries.first())
+                    }
+                    item {
+                        ActivityDetailsSection(entry = selectedDay.entries.first())
                     }
                     items(selectedDay.entries) { entry ->
                         ForecastEntryRow(entry = entry)
@@ -139,28 +148,53 @@ private fun TopBar(title: String, onBack: () -> Unit) {
 }
 
 @Composable
-private fun LocationSummary(query: ForecastQuery, resolvedName: String?) {
+private fun LocationSummary(query: ForecastQuery, resolvedName: String?, dataAvailability: DataAvailability?) {
     SectionCard {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(imageVector = Icons.Default.MapPin, contentDescription = null)
-            Column {
-                Text(
-                    text = resolvedName ?: query.locationName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = "${query.latitude}, ${query.longitude}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "${query.mode} · ${query.species}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(imageVector = Icons.Default.MapPin, contentDescription = null)
+                Column {
+                    Text(
+                        text = resolvedName ?: query.locationName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "${query.latitude}, ${query.longitude}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${query.mode} · ${query.species}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            dataAvailability?.let { availability ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AvailabilityChip(label = "Meteo", enabled = availability.weather)
+                    AvailabilityChip(label = "Astro", enabled = availability.astro)
+                    AvailabilityChip(label = "Hidro", enabled = availability.hydro)
+                    AvailabilityChip(label = "Mar", enabled = availability.marine)
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun AvailabilityChip(label: String, enabled: Boolean) {
+    Surface(
+        color = if (enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -206,6 +240,46 @@ private fun ActivityScoreCard(entry: ForecastEntry) {
     }
 }
 
+@Composable
+private fun ActivityDetailsSection(entry: ForecastEntry) {
+    SectionCard {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(text = "Factores destacados", style = MaterialTheme.typography.titleSmall)
+            if (entry.reasons.isEmpty()) {
+                Text(text = "Sin explicación disponible.", style = MaterialTheme.typography.bodySmall)
+            } else {
+                entry.reasons.take(4).forEach { reason ->
+                    Text(text = "• $reason", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            if (entry.bestWindows.isNotEmpty()) {
+                Text(text = "Mejores ventanas", style = MaterialTheme.typography.titleSmall)
+                entry.bestWindows.take(3).forEach { window ->
+                    WindowRow(window)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WindowRow(window: ActivityWindow) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "${formatTimeLabel(window.start)} - ${formatTimeLabel(window.end)}",
+            style = MaterialTheme.typography.bodySmall
+        )
+        Text(
+            text = "${window.score}/100",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
 @Composable
 private fun ForecastEntryRow(entry: ForecastEntry) {
     Surface(

@@ -601,11 +601,19 @@ private fun ForecastPreview() {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = entry.timeLabel, style = MaterialTheme.typography.bodySmall)
+                    Text(text = formatTimeLabel(entry.timeLabel), style = MaterialTheme.typography.bodySmall)
                     Text(text = "${entry.activityScore}", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
+    }
+}
+
+private fun formatTimeLabel(timeLabel: String): String {
+    return if (timeLabel.contains("T")) {
+        timeLabel.substringAfter("T").take(5)
+    } else {
+        timeLabel
     }
 }
 

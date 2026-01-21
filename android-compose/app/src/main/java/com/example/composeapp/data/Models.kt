@@ -32,14 +32,31 @@ data class ForecastEntry(
     val activityScore: Int,
     val temperatureC: Int,
     val windKph: Int,
-    val pressureHpa: Int
+    val pressureHpa: Int,
+    val reasons: List<String>,
+    val bestWindows: List<ActivityWindow>
 )
 
 data class ForecastResult(
     val location: Location,
     val entries: List<ForecastEntry>,
     val mode: String,
-    val species: String
+    val species: String,
+    val dataAvailability: DataAvailability
+)
+
+data class ActivityWindow(
+    val start: String,
+    val end: String,
+    val score: Int,
+    val reason: String
+)
+
+data class DataAvailability(
+    val weather: Boolean,
+    val astro: Boolean,
+    val hydro: Boolean,
+    val marine: Boolean
 )
 
 data class DayForecast(
