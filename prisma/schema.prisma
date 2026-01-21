@@ -1,0 +1,49 @@
+// Configuración de Prisma para SQLite
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./carpcast.db"
+}
+
+model FavoriteSpot {
+  id          String   @id @default(cuid())
+  name        String
+  latitude    Float
+  longitude   Float
+  notes       String?
+  species     String?  // JSON string array
+  lastVisited DateTime?
+  rating      Int?     // 1-5 stars
+  tags        String?  // JSON string array
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("favorite_spots")
+}
+
+model Alert {
+  id          String   @id @default(cuid())
+  type        String   // 'activity' | 'weather' | 'pressure' | 'hydro'
+  condition   String   // Description of the condition
+  threshold   Float    // Numeric threshold
+  enabled     Boolean  @default(true)
+  spotId      String?  // Reference to FavoriteSpot
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("alerts")
+}
+
+model CacheEntry {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  data        String   // JSON string
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  
+  @@map("cache_entries")
+  @@index([expiresAt])
+}
