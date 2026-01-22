@@ -2,6 +2,8 @@
 
 package com.example.composeapp.ui.screens
 
+import android.webkit.GeolocationPermissions
+import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
@@ -624,20 +626,51 @@ private fun MapPreview(location: Location, modifier: Modifier = Modifier) {
         modifier = modifier,
         factory = { context ->
             WebView(context).apply {
-                webViewClient = WebViewClient()
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                loadDataWithBaseURL(
-                    "https://localhost/",
-                    html,
-                    "text/html",
-                    "utf-8",
-                    null
-                )
+                settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    allowContentAccess = true
+                    allowFileAccess = true
+                    setGeolocationEnabled(true) // Enable geolocation
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
+                        @Suppress("DEPRECATION")
+                        allowUniversalAccessFromFileURLs = true
+                    }
+                }
+
+                // WebViewClient for page load events
+                webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        view?.evaluateJavascript(
+                            "if (typeof updateLocation === 'function') updateLocation(${location.latitude}, ${location.longitude});",
+                            null
+                        )
+                    }
+                }
+
+                // WebChromeClient for geolocation permissions
+                webChromeClient = object : WebChromeClient() {
+                    override fun onGeolocationPermissionsShowPrompt(
+                        origin: String?,
+                        callback: GeolocationPermissions.Callback?
+                    ) {
+                        // Grant geolocation permission to the WebView content
+                        callback?.invoke(origin, true, false)
+                    }
+                }
+
+                setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                loadDataWithBaseURL(null, html, "text/html", "utf-8", null)
             }
         },
         update = { view ->
-            view.evaluateJavascript("updateLocation(${location.latitude}, ${location.longitude});", null)
+            view.post {
+                view.evaluateJavascript(
+                    "if (typeof updateLocation === 'function') updateLocation(${location.latitude}, ${location.longitude});",
+                    null
+                )
+            }
         }
     )
 }
@@ -652,9 +685,33 @@ private fun mapHtml(latitude: Double, longitude: Double): String {
           <style>
             html, body { margin: 0; height: 100%; }
             #map { width: 100%; height: 100%; }
+            .location-button {
+              position: absolute;
+              top: 10px;
+              right: 10px;
+              z-index: 1000;
+              background: white;
+              border: 2px solid rgba(0,0,0,0.2);
+              border-radius: 4px;
+              width: 34px;
+              height: 34px;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 20px;
+              box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+            }
+            .location-button:hover {
+              background: #f4f4f4;
+            }
+            .location-button:active {
+              background: #e0e0e0;
+            }
           </style>
         </head>
         <body>
+          <button class=\"location-button\" onclick=\"getMyLocation()\" title=\"Mi ubicación\">📍</button>
           <div id=\"map\"></div>
           <script src=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js\"></script>
           <script>
@@ -664,9 +721,33 @@ private fun mapHtml(latitude: Double, longitude: Double): String {
               attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
             var marker = L.marker([$latitude, $longitude]).addTo(map);
+            
             function updateLocation(lat, lng) {
               map.setView([lat, lng], 10);
               marker.setLatLng([lat, lng]);
+            }
+            
+            function getMyLocation() {
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                  function(position) {
+                    var lat = position.coords.latitude;
+                    var lng = position.coords.longitude;
+                    updateLocation(lat, lng);
+                  },
+                  function(error) {
+                    console.error('Error getting location:', error.message);
+                    alert('No se pudo obtener la ubicación: ' + error.message);
+                  },
+                  {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                  }
+                );
+              } else {
+                alert('Geolocalización no soportada en este navegador');
+              }
             }
           </script>
         </body>
