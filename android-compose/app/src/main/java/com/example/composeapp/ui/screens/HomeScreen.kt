@@ -632,6 +632,9 @@ private fun MapPreview(location: Location, modifier: Modifier = Modifier) {
                     allowContentAccess = true
                     allowFileAccess = true
                     setGeolocationEnabled(true) // Enable geolocation
+                    // Security: allowUniversalAccessFromFileURLs is needed to load external
+                    // resources (Leaflet CSS/JS from CDN) in our internally-generated HTML.
+                    // This is safe because we control the HTML content and don't load user input.
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
                         @Suppress("DEPRECATION")
                         allowUniversalAccessFromFileURLs = true
@@ -641,14 +644,20 @@ private fun MapPreview(location: Location, modifier: Modifier = Modifier) {
                 // WebViewClient for page load events
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView?, url: String?) {
+                        // Sanitize coordinates to prevent JavaScript injection
+                        val sanitizedLat = location.latitude.toString().replace("[^0-9.\\-]".toRegex(), "")
+                        val sanitizedLng = location.longitude.toString().replace("[^0-9.\\-]".toRegex(), "")
                         view?.evaluateJavascript(
-                            "if (typeof updateLocation === 'function') updateLocation(${location.latitude}, ${location.longitude});",
+                            "if (typeof updateLocation === 'function') updateLocation($sanitizedLat, $sanitizedLng);",
                             null
                         )
                     }
                 }
 
                 // WebChromeClient for geolocation permissions
+                // Security: This automatically grants permission because we've already
+                // obtained Android-level location permissions. For production apps with
+                // untrusted web content, validate the origin before granting permission.
                 webChromeClient = object : WebChromeClient() {
                     override fun onGeolocationPermissionsShowPrompt(
                         origin: String?,
@@ -666,8 +675,11 @@ private fun MapPreview(location: Location, modifier: Modifier = Modifier) {
         },
         update = { view ->
             view.post {
+                // Sanitize coordinates to prevent JavaScript injection
+                val sanitizedLat = location.latitude.toString().replace("[^0-9.\\-]".toRegex(), "")
+                val sanitizedLng = location.longitude.toString().replace("[^0-9.\\-]".toRegex(), "")
                 view.evaluateJavascript(
-                    "if (typeof updateLocation === 'function') updateLocation(${location.latitude}, ${location.longitude});",
+                    "if (typeof updateLocation === 'function') updateLocation($sanitizedLat, $sanitizedLng);",
                     null
                 )
             }
